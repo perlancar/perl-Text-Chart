@@ -28,7 +28,8 @@ our @CHART_TYPES = (
     #tree map (see Google Charts API)
 );
 
-my @sparkline_chars = split //, '▁▂▃▄▅▆▇█';
+my @sparkline_chars  = split //, '▁▂▃▄▅▆▇█';
+my @hsparkline_chars = split //, '▏▎▍▌▋▊▉█';
 
 sub _find_first_numcol {
     my $tbl = shift;
