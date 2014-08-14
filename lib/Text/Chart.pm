@@ -21,6 +21,7 @@ our @CHART_TYPES = (
     #'bar',
     #'column',
     'sparkline',
+    #hsparkline
     #line
     #pie
     #area (see Google Charts API)
@@ -137,13 +138,17 @@ _
                 ['array*' => of => 'str*'],
             ]],
         },
+        chart_height => {
+            schema => 'float*',
+        },
+        chart_width => {
+            schema => 'float*',
+        },
         # XXX show_data_label
         # XXX show_data_value
         # XXX data_formats
         # XXX show_x_axis
         # XXX show_y_axis
-        # XXX canvas_height
-        # XXX canvas_width
         # XXX data_scale
         # XXX log_scale
     },
@@ -156,6 +161,7 @@ sub gen_text_chart {
     require TableData::Object;
 
     my %args = @_;
+    #use DD; dd \%args;
 
     # XXX schema
     $args{data} or die "Please specify 'data'";
@@ -184,22 +190,42 @@ sub gen_text_chart {
     my $buf = "";
 
     my $type = $args{type} or die "Please specify 'type'";
+    my $chart_height = $args{chart_height};
     if ($type eq 'sparkline') {
+        $chart_height //= 1;
         for my $col (@data_columns) {
             my $coldata = $tbl->column_data($col);
+            my @dbuf = ( (" " x @$coldata) . "\n" ) x $chart_height;
             my ($min, $max) = minmax(@$coldata);
+            my @heights;
             for my $d (@$coldata) {
-                my $i;
+                my $h;
                 if ($max != $min) {
-                    $i = sprintf("%.0f",
-                                 ($d-$min)/($max-$min) * (@sparkline_chars-1));
+                    $h = ($d-$min)/($max-$min) * $chart_height;
                 } else {
-                    $i = 0;
+                    $h = 0;
                 }
-                $buf .= $sparkline_chars[$i];
+                push @heights, $h;
             }
+            for my $line (1..$chart_height) {
+                my $h1 = $chart_height-$line;
+                for my $i (0..@$coldata-1) {
+                    my $j; # which sparkline character to use
+                    my $d = $coldata->[$i];
+                    my $height = $heights[$i];
+                    if ($height > $h1+1) {
+                        $j = @sparkline_chars-1; # full
+                    } elsif ($height > $h1) {
+                        $j = sprintf("%.0f", ($height-$h1)*(@sparkline_chars-1));
+                    } else {
+                        # empty
+                        next;
+                    }
+                    substr($dbuf[$line-1], $i, 1) = $sparkline_chars[$j];
+                }
+            }
+            $buf .= join "", @dbuf;
         }
-        $buf .= "\n";
     } else {
         die "Unknown chart type '$type'";
     }
