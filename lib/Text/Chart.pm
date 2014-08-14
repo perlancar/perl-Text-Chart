@@ -195,7 +195,7 @@ sub gen_text_chart {
     if ($type eq 'sparkline') {
         $chart_height //= 1;
         for my $col (@data_columns) {
-            my $coldata = $tbl->column_data($col);
+            my $coldata = [map {$_//0} @{ $tbl->column_data($col) }];
             my @dbuf = ( (" " x @$coldata) . "\n" ) x $chart_height;
             my ($min, $max) = minmax(@$coldata);
             my @heights;
