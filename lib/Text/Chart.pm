@@ -8,6 +8,9 @@ use strict;
 use utf8;
 use warnings;
 
+use List::MoreUtils qw(minmax);
+use Scalar::Util qw(looks_like_number);
+
 require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT_OK = qw(gen_text_chart);
@@ -25,6 +28,45 @@ our @CHART_TYPES = (
 );
 
 my @sparkline_chars = split //, '▁▂▃▄▅▆▇█';
+
+sub _find_first_numcol {
+    my $tbl = shift;
+
+  COL:
+    for my $col (@{ $tbl->columns }) {
+        my $coldata = $tbl->column_data($col);
+        my $is_numeric = 1;
+        for (1..10) {
+            last if $_ > @$coldata;
+            if (!looks_like_number($coldata->[$_-1])) {
+                $is_numeric = 0;
+                next COL;
+            }
+        }
+        return $col if $is_numeric;
+    }
+    return undef;
+}
+
+sub _find_first_nonnumcol {
+    my $tbl = shift;
+
+  COL:
+    for my $col (@{ $tbl->columns }) {
+        my $coldata = $tbl->column_data($col);
+        my $is_nonnum = 1;
+        for (1..10) {
+            last if $_ > @$coldata;
+            my $data = $coldata->[$_-1];
+            if (defined($data) && !looks_like_number($data)) {
+                $is_nonnum = 0;
+                next COL;
+            }
+        }
+        return $col if $is_nonnum;
+    }
+    return undef;
+}
 
 $SPEC{gen_text_chart} = {
     v => 1.1,
@@ -105,6 +147,10 @@ _
         # XXX data_scale
         # XXX log_scale
     },
+    result_naked => 1,
+    result => {
+        schema => 'str*',
+    },
 };
 sub gen_text_chart {
     require TableData::Object;
@@ -112,18 +158,53 @@ sub gen_text_chart {
     my %args = @_;
 
     # XXX schema
-    $args{data} or return [400, "Please specify 'data'"];
+    $args{data} or die "Please specify 'data'";
     my $tbl = TableData::Object->new($args{data}, $args{spec});
 
-    my @data_cols;
+    my @data_columns;
     {
         my $dc = $args{data_column};
         if (defined $dc) {
-            @data_cols = ref($dc) eq 'ARRAY' ? @$dc : ($dc);
+            @data_columns = ref($dc) eq 'ARRAY' ? @$dc : ($dc);
         } else {
-            # find first numeric column
+            my $col = _find_first_numcol($tbl);
+            die "There is no numeric column for data" unless defined $col;
+            @data_columns = ($col);
         }
     }
+
+    my $label_column = $args{label_column};
+    if (!defined($label_column)) {
+        my $col = _find_first_nonnumcol($tbl);
+        die "There is no non-numeric column for label"
+            if $args{show_data_label} && !defined($col);
+        $label_column = $col;
+    }
+
+    my $buf = "";
+
+    my $type = $args{type} or die "Please specify 'type'";
+    if ($type eq 'sparkline') {
+        for my $col (@data_columns) {
+            my $coldata = $tbl->column_data($col);
+            my ($min, $max) = minmax(@$coldata);
+            for my $d (@$coldata) {
+                my $i;
+                if ($max != $min) {
+                    $i = sprintf("%.0f",
+                                 ($d-$min)/($max-$min) * (@sparkline_chars-1));
+                } else {
+                    $i = 0;
+                }
+                $buf .= $sparkline_chars[$i];
+            }
+        }
+        $buf .= "\n";
+    } else {
+        die "Unknown chart type '$type'";
+    }
+
+    $buf;
 }
 
 1;
@@ -210,11 +291,21 @@ C<Plotting multiple data columns:>
 
 =head1 DESCRIPTION
 
-B<EARLY RELEASE, SOME FEATURES NOT YET IMPLEMENTED.> Currently only sparkline
-chart is implemented. Showing data labels and data values are not yet
-implemented.
+B<THIS IS AN EARLY RELEASE, MANY FEATURES ARE NOT YET IMPLEMENTED.> Currently
+only sparkline chart is implemented. Showing data labels and data values are not
+yet implemented.
 
 This module lets you generate text-based charts.
+
+
+=head1 FAQ
+
+=head2 Why am I getting 'Wide character in print/say' warning?
+
+You are probably printing Unicode characters to STDOUT without doing something
+like this beforehand:
+
+ binmode(STDOUT, ":utf8");
 
 
 =head1 TODO
