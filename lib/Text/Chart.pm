@@ -235,7 +235,7 @@ sub gen_text_chart {
 }
 
 1;
-# ABSTRACT: Generate text-based chart
+# ABSTRACT:
 
 =head1 SYNOPSIS
 
