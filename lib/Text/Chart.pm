@@ -346,4 +346,6 @@ Compared to Text::Graph, here are the things I want to add or do differently as
 well: functional (non-OO) interface, colors, Unicode, resampling, more chart
 types like sparkline, animation and some interactivity (perhaps).
 
+L<App::tchart>, a CLI for Text::Chart.
+
 =cut
