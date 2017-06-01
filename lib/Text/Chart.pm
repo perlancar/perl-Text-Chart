@@ -31,12 +31,22 @@ our @CHART_TYPES = (
 my @sparkline_chars  = split //, '▁▂▃▄▅▆▇█';
 my @hsparkline_chars = split //, '▏▎▍▌▋▊▉█';
 
+sub _get_column_data {
+    my ($tbl, $col) = @_;
+    my $res = $tbl->select_as_aoaos([$col]);
+    my $coldata = [];
+    for (@{ $res->{data} }) {
+        push @$coldata, $_->[0];
+    }
+    $coldata;
+}
+
 sub _find_first_numcol {
     my $tbl = shift;
 
   COL:
-    for my $col (@{ $tbl->columns }) {
-        my $coldata = $tbl->column_data($col);
+    for my $col (@{ $tbl->cols_by_idx }) {
+        my $coldata = _get_column_data($tbl, $col);
         my $is_numeric = 1;
         for (1..10) {
             last if $_ > @$coldata;
@@ -54,8 +64,8 @@ sub _find_first_nonnumcol {
     my $tbl = shift;
 
   COL:
-    for my $col (@{ $tbl->columns }) {
-        my $coldata = $tbl->column_data($col);
+    for my $col (@{ $tbl->cols_by_idx }) {
+        my $coldata = _get_column_data($tbl, $col);
         my $is_nonnum = 1;
         for (1..10) {
             last if $_ > @$coldata;
@@ -195,7 +205,7 @@ sub gen_text_chart {
     if ($type eq 'sparkline') {
         $chart_height //= 1;
         for my $col (@data_columns) {
-            my $coldata = [map {$_//0} @{ $tbl->column_data($col) }];
+            my $coldata = [map {$_//0} @{ _get_column_data($tbl, $col) }];
             my @dbuf = ( (" " x @$coldata) . "\n" ) x $chart_height;
             my ($min, $max) = minmax(@$coldata);
             my @heights;
