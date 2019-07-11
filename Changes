@@ -1,11 +1,11 @@
-0.03    2017-06-01 (PERLANCAR)
+0.03    2017-06-01  Released-By: PERLANCAR
 
 	- Update to newer TableData::Object API.
 
 	- Mention App::tchart.
 
 
-0.02    2015-01-03 (PERLANCAR)
+0.02    2015-01-03  Released-By: PERLANCAR
 
 	- No functional changes.
 
