@@ -1,6 +1,8 @@
 package Text::Chart;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -169,14 +171,14 @@ _
     },
 };
 sub gen_text_chart {
-    require TableData::Object;
+    require Data::TableData::Object;
 
     my %args = @_;
     #use DD; dd \%args;
 
     # XXX schema
     $args{data} or die "Please specify 'data'";
-    my $tbl = TableData::Object->new($args{data}, $args{spec});
+    my $tbl = Data::TableData::Object->new($args{data}, $args{spec});
 
     my @data_columns;
     {
